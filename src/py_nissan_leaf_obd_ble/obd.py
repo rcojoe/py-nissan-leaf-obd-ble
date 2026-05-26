@@ -111,42 +111,54 @@ class OBD:
             # the ELM327 class will report its own errors
             await self.close()
 
-    async def __set_header(self, header) -> None:
-        if header == self.__last_header:
-            return
-        r = await self.interface.send_and_parse(b"AT SH " + header + b" ")
-        if not r:
-            logger.info("Set Header ('AT SH %s') did not return data", header)
-            return
-        if "\n".join([m.raw() for m in r]) != "OK":
-            logger.info("Set Header ('AT SH %s') did not return 'OK'", header)
-            return
+    async def __set_header(self, header, rev_header=None) -> None:
+        logger.debug(
+            "Setting header: header=%s rev_header=%s",
+            header,
+            rev_header,
+        )
+        if header !== self.__last_header:
+            r = await self.interface.send_and_parse(b"AT SH " + header + b" ")
+            if not r:
+                logger.info("Set Header ('AT SH %s') did not return data", header)
+                return
+            if "\n".join([m.raw() for m in r]) != "OK":
+                logger.info("Set Header ('AT SH %s') did not return 'OK'", header)
+                return
+            r = await self.interface.send_and_parse(b"AT FC SH " + header + b" ")
+            if not r:
+                logger.info("Set Header ('AT FC SH %s') did not return data", header)
+                return
+            if "\n".join([m.raw() for m in r]) != "OK":
+                logger.info("Set Header ('AT FC SH %s') did not return 'OK'", header)
+                return
 
-        r = await self.interface.send_and_parse(b"AT FC SH " + header + b" ")
-        if not r:
-            logger.info("Set Header ('AT FC SH %s') did not return data", header)
-            return
-        if "\n".join([m.raw() for m in r]) != "OK":
-            logger.info("Set Header ('AT FC SH %s') did not return 'OK'", header)
-            return
+            r = await self.interface.send_and_parse(b"AT FC SD 30 00 00")
+            if not r:
+                logger.info("Set Header ('AT FC SD %s') did not return data", header)
+                return
+            if "\n".join([m.raw() for m in r]) != "OK":
+                logger.info("Set Header ('AT FC SD %s') did not return 'OK'", header)
+                return
 
-        r = await self.interface.send_and_parse(b"AT FC SD 30 00 00")
-        if not r:
-            logger.info("Set Header ('AT FC SD %s') did not return data", header)
-            return
-        if "\n".join([m.raw() for m in r]) != "OK":
-            logger.info("Set Header ('AT FC SD %s') did not return 'OK'", header)
-            return
+            r = await self.interface.send_and_parse(b"AT FC SM 1")
+            if not r:
+                logger.info("Set Header ('AT FC SM %s') did not return data", header)
+                return
+            if "\n".join([m.raw() for m in r]) != "OK":
+                logger.info("Set Header ('AT FC SM %s') did not return 'OK'", header)
+                return
+            self.__last_header = header
 
-        r = await self.interface.send_and_parse(b"AT FC SM 1")
-        if not r:
-            logger.info("Set Header ('AT FC SM %s') did not return data", header)
-            return
-        if "\n".join([m.raw() for m in r]) != "OK":
-            logger.info("Set Header ('AT FC SM %s') did not return 'OK'", header)
-            return
-
-        self.__last_header = header
+        if rev_header !== self.__last_rev_header:
+            r = await self.interface.send_and_parse(b"AT CRA " + rev_header + b" ")
+            if not r:
+                logger.info("Set Rev Header ('AT CRA %s') did not return data", rev_header)
+                return
+            if "\n".join([m.raw() for m in r]) != "OK":
+                logger.info("Set Rev Header ('AT CRA %s') did not return 'OK'", rev_header)
+                return
+            self.__last_rev_header = rev_header
 
     async def close(self):
         """Close the connection, and clears supported_commands."""

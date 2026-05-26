@@ -50,6 +50,7 @@ class OBDCommand:
         decoder,
         header,
         fast=False,
+        rev_header=None,
     ) -> None:
         """Initialise."""
         self.name = name  # human readable name (also used as key in commands dict)
@@ -58,6 +59,7 @@ class OBDCommand:
         self.bytes = _bytes  # number of bytes expected in return
         self.decode = decoder  # decoding function
         self.header = header  # header used for the queries
+        self.rev_header = rev_header  # optional response header
         self.fast = fast  # can an extra digit be added to the end of the command? (to make the ELM return early)
 
     def clone(self):
@@ -70,6 +72,7 @@ class OBDCommand:
             self.decode,
             self.header,
             self.fast,
+            self.rev_header,
         )
 
     @property
@@ -131,23 +134,28 @@ class OBDCommand:
 
     def __repr__(self):
         """Return representation of the command."""
-        return "OBDCommand(%s, %s, %s, %s, raw_string, fast=%s, header=%s)" % (
+        return "OBDCommand(%s, %s, %s, %s, raw_string, fast=%s, header=%s, rev_header=%s)" % (
             repr(self.name),
             repr(self.desc),
             repr(self.command),
             self.bytes,
             self.fast,
             repr(self.header),
+            repr(self.rev_header),
         )
 
     def __hash__(self):
         """Return the hash of the command."""
         # needed for using commands as keys in a dict (see async.py)
-        return hash(self.header + self.command)
+        return hash((self.header, self.command, self.rev_header))
 
     def __eq__(self, other):
         """Equals check."""
         if isinstance(other, OBDCommand):
-            return self.command == other.command and self.header == other.header
+            return (
+                self.command == other.command
+                and self.header == other.header
+                and self.rev_header == other.rev_header
+            )
         return False
 
