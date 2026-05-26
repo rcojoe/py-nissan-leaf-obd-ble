@@ -117,7 +117,7 @@ class OBD:
             header,
             rev_header,
         )
-        if header !== self.__last_header:
+        if header != self.__last_header:
             r = await self.interface.send_and_parse(b"AT SH " + header + b" ")
             if not r:
                 logger.info("Set Header ('AT SH %s') did not return data", header)
@@ -150,7 +150,7 @@ class OBD:
                 return
             self.__last_header = header
 
-        if rev_header !== self.__last_rev_header:
+        if rev_header != self.__last_rev_header:
             r = await self.interface.send_and_parse(b"AT CRA " + rev_header + b" ")
             if not r:
                 logger.info("Set Rev Header ('AT CRA %s') did not return data", rev_header)
